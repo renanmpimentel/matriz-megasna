@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 
 const BASE_URL = "https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena";
 const OUTPUT_PATH = resolve("public/data/sorteios.json");
+const META_PATH = resolve("public/data/meta.json");
 const WAIT_MS = 70;
 const RETRIES = 3;
 
@@ -84,6 +85,13 @@ async function main() {
   const startNumber = Math.max(1, lastSavedDraw + 1);
 
   if (startNumber > latestNumber) {
+    const nowIso = new Date().toISOString();
+    await mkdir(dirname(META_PATH), { recursive: true });
+    await writeFile(
+      META_PATH,
+      JSON.stringify({ updatedAt: nowIso, latestDraw: lastSavedDraw, source: "caixa-api" }),
+      "utf8"
+    );
     process.stdout.write(`Nenhum sorteio novo. Ultimo salvo: ${lastSavedDraw}.\n`);
     process.stdout.write(`Arquivo mantido: ${OUTPUT_PATH}\n`);
     return;
@@ -107,6 +115,11 @@ async function main() {
 
   await mkdir(dirname(OUTPUT_PATH), { recursive: true });
   await writeFile(OUTPUT_PATH, JSON.stringify(concursos), "utf8");
+  await writeFile(
+    META_PATH,
+    JSON.stringify({ updatedAt: new Date().toISOString(), latestDraw: latestNumber, source: "caixa-api" }),
+    "utf8"
+  );
 
   process.stdout.write(`Arquivo atualizado: ${OUTPUT_PATH}\n`);
   process.stdout.write(`Total de sorteios: ${concursos.length}\n`);

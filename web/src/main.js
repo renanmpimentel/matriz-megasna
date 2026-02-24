@@ -100,6 +100,10 @@ document.querySelector("#app").innerHTML = `
           </div>
         </div>
       </section>
+
+      <footer class="mt-4 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-center text-sm text-slate-600">
+        <span id="last-updated">Ultima atualizacao: carregando...</span>
+      </footer>
     </div>
   </main>
 `;
@@ -120,6 +124,7 @@ const lastPageButton = document.querySelector("#last-page");
 const sortableHeaders = [...document.querySelectorAll("[data-sort-key]")];
 const tutorialList = document.querySelector("#tutorial-list");
 const toggleTutorialButton = document.querySelector("#toggle-tutorial");
+const lastUpdatedElement = document.querySelector("#last-updated");
 
 let allRows = [];
 let filteredRows = [];
@@ -260,6 +265,21 @@ function applyFilters() {
 async function init() {
   const response = await fetch("/data/sorteios.json");
   const draws = await response.json();
+
+  try {
+    const metaResponse = await fetch("/data/meta.json");
+    if (metaResponse.ok) {
+      const meta = await metaResponse.json();
+      const updatedAt = new Date(meta.updatedAt);
+      if (!Number.isNaN(updatedAt.getTime())) {
+        const label = updatedAt.toLocaleString("pt-BR");
+        lastUpdatedElement.textContent = `Ultima atualizacao: ${label}`;
+      }
+    }
+  } catch {
+    lastUpdatedElement.textContent = "Ultima atualizacao: indisponivel";
+  }
+
   allRows = draws.map(buildRow);
 
   const types = [...new Set(allRows.map((row) => row.type))].sort();
