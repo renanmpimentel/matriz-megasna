@@ -48,7 +48,19 @@ function normalize(concurso) {
 }
 
 async function main() {
-  const latest = await fetchWithRetry(BASE_URL);
+  let latest;
+  try {
+    latest = await fetchWithRetry(BASE_URL);
+  } catch (error) {
+    try {
+      await readFile(OUTPUT_PATH, "utf8");
+      process.stdout.write(`Aviso: sincronizacao online indisponivel (${error.message}). Mantendo base local.\n`);
+      return;
+    } catch {
+      throw error;
+    }
+  }
+
   const latestNumber = Number(latest.numero);
 
   if (!Number.isFinite(latestNumber) || latestNumber < 1) {
