@@ -31,8 +31,12 @@ jobs:
         run: npm ci
         working-directory: web
 
-      - name: Build app
-        run: npm run build
+      - name: Sync latest draws
+        run: npm run sync:data
+        working-directory: web
+
+      - name: Validate app build
+        run: npm run build:static
         working-directory: web
 
       - name: Commit updated data
