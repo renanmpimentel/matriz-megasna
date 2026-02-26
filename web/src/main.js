@@ -266,19 +266,10 @@ async function init() {
   const response = await fetch("/data/sorteios.json");
   const draws = await response.json();
 
-  try {
-    const metaResponse = await fetch("/data/meta.json");
-    if (metaResponse.ok) {
-      const meta = await metaResponse.json();
-      const updatedAt = new Date(meta.updatedAt);
-      if (!Number.isNaN(updatedAt.getTime())) {
-        const label = updatedAt.toLocaleString("pt-BR");
-        lastUpdatedElement.textContent = `Ultima atualizacao: ${label}`;
-      }
-    }
-  } catch {
-    lastUpdatedElement.textContent = "Ultima atualizacao: indisponivel";
-  }
+  const latestDraw = [...draws].sort((a, b) => Number(a.draw) - Number(b.draw)).at(-1);
+  const updatedLabel = new Date().toLocaleString("pt-BR");
+  const latestDrawLabel = latestDraw?.date ? ` | Data do ultimo jogo: ${latestDraw.date}` : "";
+  lastUpdatedElement.textContent = `Ultima atualizacao: ${updatedLabel}${latestDrawLabel}`;
 
   allRows = draws.map(buildRow);
 
