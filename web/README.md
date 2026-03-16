@@ -7,6 +7,16 @@ Aplicacao web para consulta de sorteios, com filtros e paginacao.
 - `Tipo`
 - `Digitos`
 
+## Deploy no GitHub Pages
+
+O repositório inclui o workflow `.github/workflows/deploy-gh-pages.yml` para publicar `web/dist` automaticamente.
+
+1. No GitHub, abra **Settings > Pages**.
+2. Em **Build and deployment**, selecione **Source: GitHub Actions**.
+3. Faça push para a branch `main`.
+
+O site sera publicado na URL do Pages do repositorio.
+
 ## Rodar local com Docker
 
 ```bash
