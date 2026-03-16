@@ -1,4 +1,5 @@
 import "./style.css";
+import { getDrawsDataUrl } from "./data-url.js";
 
 document.querySelector("#app").innerHTML = `
   <main class="min-h-screen bg-linear-to-b from-emerald-50 via-white to-amber-50 text-slate-800">
@@ -263,7 +264,7 @@ function applyFilters() {
 }
 
 async function init() {
-  const response = await fetch("/data/sorteios.json");
+  const response = await fetch(getDrawsDataUrl(import.meta.env.BASE_URL));
   const draws = await response.json();
 
   const latestDraw = [...draws].sort((a, b) => Number(a.draw) - Number(b.draw)).at(-1);

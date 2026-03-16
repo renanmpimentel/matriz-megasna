@@ -8,7 +8,8 @@
     "dev": "vite",
     "build:static": "vite build",
     "build": "npm run sync:data && vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 4173"
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test": "node --test src/*.test.js"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.12",
