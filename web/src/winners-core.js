@@ -27,7 +27,7 @@ function toValidSignature(numbers, n) {
   return positions.map((position) => position.value).join("-");
 }
 
-export function buildChampionsRanking(draws, options = {}) {
+export function buildWinnersScoreRanking(draws, options = {}) {
   const n = Number(options.n ?? 6);
   const freqWeight = Number(options.freqWeight ?? DEFAULT_FREQ_WEIGHT);
   const recencyWeight = Number(options.recencyWeight ?? DEFAULT_RECENCY_WEIGHT);

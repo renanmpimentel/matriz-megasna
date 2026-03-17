@@ -1,17 +1,17 @@
 import "./style.css";
 import { getDrawsDataUrl } from "./data-url.js";
 import { buildStrategyRanking } from "./strategy-analysis.js";
-import { buildChampionsTableRows, normalizeChampionsOptions } from "./champions-view.js";
+import { buildWinnersTableRows, normalizeWinnersOptions } from "./winners-view.js";
 
 document.querySelector("#app").innerHTML = `
   <main class="min-h-screen bg-linear-to-b from-emerald-50 via-white to-amber-50 text-slate-800">
     <div class="mx-auto w-full max-w-[1440px] p-3 md:p-6">
       <header class="mb-4 rounded-2xl border border-emerald-200 bg-white/90 p-4 shadow-sm md:p-6">
         <h1 class="text-2xl font-bold text-emerald-800 md:text-3xl">Painel Mega-Sena</h1>
-        <p class="mt-1 text-sm text-slate-600 md:text-base">Consulta de sorteios e ranking de campeoes.</p>
+        <p class="mt-1 text-sm text-slate-600 md:text-base">Consulta de sorteios e ranking de vencedores.</p>
         <div class="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Navegacao principal">
           <button id="tab-draws" type="button" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white" aria-selected="true">Sorteios</button>
-          <button id="tab-champions" type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700" aria-selected="false">Campeoes</button>
+          <button id="tab-winners" type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700" aria-selected="false">Vencedores</button>
         </div>
       </header>
 
@@ -101,51 +101,41 @@ document.querySelector("#app").innerHTML = `
         </section>
       </section>
 
-      <section id="panel-champions" class="hidden space-y-4">
+      <section id="panel-winners" class="hidden space-y-4">
         <section class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 shadow-sm md:p-5">
           <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-indigo-700">Parametros do ranking</h2>
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label class="text-sm font-medium text-slate-700">
               Matriz n x n
-              <input id="champions-n" type="number" min="2" max="9" value="6" class="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-base outline-none transition focus:border-indigo-500" />
-            </label>
-            <label class="text-sm font-medium text-slate-700">
-              Peso frequencia
-              <input id="champions-freq" type="number" min="0" max="1" step="0.1" value="0.8" class="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-base outline-none transition focus:border-indigo-500" />
-            </label>
-            <label class="text-sm font-medium text-slate-700">
-              Peso recencia
-              <input id="champions-recency" type="number" min="0" max="1" step="0.1" value="0.2" class="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-base outline-none transition focus:border-indigo-500" />
+              <input id="winners-n" type="number" min="2" max="9" value="6" class="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-base outline-none transition focus:border-indigo-500" />
             </label>
             <label class="text-sm font-medium text-slate-700">
               Top N
-              <select id="champions-top" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base outline-none transition focus:border-indigo-500">
+              <select id="winners-top" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base outline-none transition focus:border-indigo-500">
                 <option value="10">10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
               </select>
             </label>
           </div>
-          <p id="champions-summary" class="mt-3 rounded-xl bg-white p-3 text-sm text-slate-700"></p>
+          <p id="winners-summary" class="mt-3 rounded-xl bg-white p-3 text-sm text-slate-700"></p>
         </section>
 
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div class="overflow-x-auto">
-            <table class="w-full min-w-[1140px] border-collapse" aria-label="Ranking de campeoes">
+            <table class="w-full min-w-[1140px] border-collapse" aria-label="Ranking de vencedores">
               <thead class="bg-indigo-700 text-white">
                 <tr>
-                  <th class="px-3 py-3 text-left text-xs font-semibold">Assinatura</th>
-                  <th class="px-3 py-3 text-center text-xs font-semibold">Freq Abs</th>
-                  <th class="px-3 py-3 text-center text-xs font-semibold">Freq Norm</th>
-                  <th class="px-3 py-3 text-center text-xs font-semibold">Recencia</th>
-                  <th class="px-3 py-3 text-center text-xs font-semibold">Score</th>
-                  <th class="px-3 py-3 text-left text-xs font-semibold">Vitorias (time/jogo e matriz/jogo)</th>
+                  <th class="px-3 py-3 text-left text-xs font-semibold">Estrategia (matriz/jogo base)</th>
+                  <th class="px-3 py-3 text-center text-xs font-semibold">Times vencedores</th>
+                  <th class="px-3 py-3 text-left text-xs font-semibold">Times em que a estrategia venceu</th>
+                  <th class="px-3 py-3 text-left text-xs font-semibold">Outros times vencedores com a mesma estrategia</th>
                 </tr>
               </thead>
-              <tbody id="champions-table-body"></tbody>
+              <tbody id="winners-table-body"></tbody>
             </table>
           </div>
-          <p id="champions-empty" class="hidden border-t border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Nenhum concurso valido para os parametros escolhidos.</p>
+          <p id="winners-empty" class="hidden border-t border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Nenhum concurso valido para os parametros escolhidos.</p>
         </section>
       </section>
 
@@ -174,16 +164,14 @@ const tutorialList = document.querySelector("#tutorial-list");
 const toggleTutorialButton = document.querySelector("#toggle-tutorial");
 const lastUpdatedElement = document.querySelector("#last-updated");
 const tabDraws = document.querySelector("#tab-draws");
-const tabChampions = document.querySelector("#tab-champions");
+const tabWinners = document.querySelector("#tab-winners");
 const panelDraws = document.querySelector("#panel-draws");
-const panelChampions = document.querySelector("#panel-champions");
-const championsN = document.querySelector("#champions-n");
-const championsFreq = document.querySelector("#champions-freq");
-const championsRecency = document.querySelector("#champions-recency");
-const championsTop = document.querySelector("#champions-top");
-const championsSummary = document.querySelector("#champions-summary");
-const championsTableBody = document.querySelector("#champions-table-body");
-const championsEmpty = document.querySelector("#champions-empty");
+const panelWinners = document.querySelector("#panel-winners");
+const winnersN = document.querySelector("#winners-n");
+const winnersTop = document.querySelector("#winners-top");
+const winnersSummary = document.querySelector("#winners-summary");
+const winnersTableBody = document.querySelector("#winners-table-body");
+const winnersEmpty = document.querySelector("#winners-empty");
 
 let rawDraws = [];
 let allRows = [];
@@ -326,63 +314,56 @@ function applyFilters() {
 function setActiveTab(tab) {
   const showDraws = tab === "draws";
   panelDraws.classList.toggle("hidden", !showDraws);
-  panelChampions.classList.toggle("hidden", showDraws);
+  panelWinners.classList.toggle("hidden", showDraws);
 
   tabDraws.setAttribute("aria-selected", showDraws ? "true" : "false");
-  tabChampions.setAttribute("aria-selected", showDraws ? "false" : "true");
+  tabWinners.setAttribute("aria-selected", showDraws ? "false" : "true");
 
   tabDraws.className = showDraws
     ? "rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
     : "rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700";
-  tabChampions.className = showDraws
+  tabWinners.className = showDraws
     ? "rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
     : "rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white";
 }
 
-function renderChampions() {
-  const options = normalizeChampionsOptions({
-    n: championsN.value,
-    freqWeight: championsFreq.value,
-    recencyWeight: championsRecency.value,
-    top: championsTop.value
+function renderWinners() {
+  const options = normalizeWinnersOptions({
+    n: winnersN.value,
+    top: winnersTop.value
   });
 
-  championsN.value = String(options.n);
-  championsFreq.value = String(options.freqWeight);
-  championsRecency.value = String(options.recencyWeight);
-  championsTop.value = String(options.top);
+  winnersN.value = String(options.n);
+  winnersTop.value = String(options.top);
 
   const result = buildStrategyRanking(rawDraws, options);
-  const rows = buildChampionsTableRows(result.ranking, options.top);
+  const rows = buildWinnersTableRows(result.ranking, options.top);
 
-  championsSummary.textContent = `Validos: ${result.validDrawsCount} | Descartados: ${result.discardedDrawsCount} | Estrategias unicas: ${result.ranking.length}`;
+  winnersSummary.textContent = `Validos: ${result.validDrawsCount} | Descartados: ${result.discardedDrawsCount} | Estrategias unicas: ${result.ranking.length} | Melhor estrategia: mais times vencedores`;
 
-  championsTableBody.innerHTML = rows
+  winnersTableBody.innerHTML = rows
     .map((row) => {
-      const winsMarkup = row.wins
-        .map(
-          (win) =>
-            `<div class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1">${win.teamLabel} | ${win.matrixLabel}</div>`
-        )
+      const teamsMarkup = row.teams
+        .map((team) => `<div class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1">${team}</div>`)
         .join("");
+      const othersMarkup = row.otherWinningTeams
+        .map((team) => `<div class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1">${team}</div>`)
+        .join("");
+      const noneLabel = `<span class="text-slate-500">Sem outros times</span>`;
 
       return `
       <tr class="odd:bg-white even:bg-slate-50/70">
-        <td class="border-b border-slate-200 px-3 py-2 text-sm font-medium text-slate-800">${row.signature}</td>
-        <td class="border-b border-slate-200 px-3 py-2 text-center text-sm">${row.frequencyAbsolute}</td>
-        <td class="border-b border-slate-200 px-3 py-2 text-center text-sm">${row.frequencyNormalized}</td>
-        <td class="border-b border-slate-200 px-3 py-2 text-center text-sm">${row.recencyNormalized}</td>
-        <td class="border-b border-slate-200 px-3 py-2 text-center text-sm font-semibold text-indigo-700">${row.finalScore}</td>
-        <td class="border-b border-slate-200 px-3 py-2 text-xs text-slate-700">
-          <div class="mb-1 font-semibold text-slate-800">Total de vitorias: ${row.winsCount}</div>
-          <div class="grid gap-1">${winsMarkup}</div>
+        <td class="border-b border-slate-200 px-3 py-2 text-sm font-medium text-slate-800">${row.strategyLabel}</td>
+        <td class="border-b border-slate-200 px-3 py-2 text-center text-sm font-semibold text-indigo-700">${row.winsCount}</td>
+        <td class="border-b border-slate-200 px-3 py-2 text-xs text-slate-700"><div class="grid gap-1">${teamsMarkup}</div></td>
+        <td class="border-b border-slate-200 px-3 py-2 text-xs text-slate-700"><div class="grid gap-1">${othersMarkup || noneLabel}</div>
         </td>
       </tr>
     `
     })
     .join("");
 
-  championsEmpty.classList.toggle("hidden", rows.length > 0);
+  winnersEmpty.classList.toggle("hidden", rows.length > 0);
 }
 
 async function init() {
@@ -401,7 +382,7 @@ async function init() {
   typeFilter.innerHTML = `<option value="">Todos</option>${types.map((t) => `<option>${t}</option>`).join("")}`;
 
   renderPage();
-  renderChampions();
+  renderWinners();
 
   drawFilter.addEventListener("input", applyFilters);
   numberFilter.addEventListener("input", applyFilters);
@@ -461,11 +442,11 @@ async function init() {
   });
 
   tabDraws.addEventListener("click", () => setActiveTab("draws"));
-  tabChampions.addEventListener("click", () => setActiveTab("champions"));
+  tabWinners.addEventListener("click", () => setActiveTab("winners"));
 
-  [championsN, championsFreq, championsRecency, championsTop].forEach((element) => {
-    element.addEventListener("input", renderChampions);
-    element.addEventListener("change", renderChampions);
+  [winnersN, winnersTop].forEach((element) => {
+    element.addEventListener("input", renderWinners);
+    element.addEventListener("change", renderWinners);
   });
 }
 

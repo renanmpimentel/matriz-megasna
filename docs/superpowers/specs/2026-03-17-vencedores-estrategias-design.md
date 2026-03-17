@@ -1,12 +1,12 @@
-# Design: Aba de Campeoes (Mega-Sena)
+# Design: Aba de Vencedores (Mega-Sena)
 
 ## Objetivo
-Retomar o estado atual do projeto restaurando `web/src/main.js` e adicionar uma aba dedicada "Campeoes" que consome `buildChampionsRanking`.
+Retomar o estado atual do projeto restaurando `web/src/main.js` e adicionar uma aba dedicada "Vencedores" que consome `buildWinnersScoreRanking`.
 
 ## Escopo
 - Manter a aba atual de sorteios com filtros e paginacao.
-- Adicionar navegação por abas: `Sorteios` e `Campeoes`.
-- Na aba `Campeoes`, mostrar ranking com controles de `N`, pesos e Top N.
+- Adicionar navegação por abas: `Sorteios` e `Vencedores`.
+- Na aba `Vencedores`, mostrar ranking com controles de `N`, pesos e Top N.
 - Exibir contadores de concursos validos e descartados.
 
 ## Fora de escopo
@@ -17,7 +17,7 @@ Retomar o estado atual do projeto restaurando `web/src/main.js` e adicionar uma 
 ## Fluxo
 1. Carregar sorteios de `data/sorteios.json`.
 2. Renderizar aba de sorteios como hoje.
-3. Converter dados e calcular ranking via `buildChampionsRanking`.
+3. Converter dados e calcular ranking via `buildWinnersScoreRanking`.
 4. Recalcular quando controles da aba mudarem.
 
 ## Erros e estados vazios
@@ -25,5 +25,5 @@ Retomar o estado atual do projeto restaurando `web/src/main.js` e adicionar uma 
 - Dados ausentes/invalidos: manter contadores e tabela vazia.
 
 ## Validacao
-- Testes unitarios existentes de `champions.js` continuam verdes.
+- Testes unitarios existentes de `winners.js` continuam verdes.
 - Build do frontend sem erro.

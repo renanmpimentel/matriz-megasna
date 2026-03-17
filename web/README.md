@@ -9,13 +9,14 @@ Aplicacao web para consulta de sorteios, com filtros e paginacao.
 
 ## Estrategias vencedoras
 
-Na aba `Campeoes`, o ranking mostra:
+Na aba `Vencedores`, o ranking mostra:
 
-- `Time/jogo`: formato `012345/jogo N da mega`
-- `Matriz/jogo`: formato `15-15-41-44-52-63/jogo N da mega sena`
-- `Outros times vencedores`: mesma estrategia (matriz) aplicada em outros jogos vencedores
+- `Estrategia (matriz/jogo base)`: formato `15-15-41-44-52-63/jogo N da mega sena`
+- `Times vencedores`: total de times em que a estrategia venceu
+- `Times em que a estrategia venceu`: formato `012345/jogo N da mega`
+- `Outros times vencedores com a mesma estrategia`: repeticoes da mesma matriz em outros jogos
 
-A melhor estrategia fica no topo do ranking (score ponderado por frequencia + recencia).
+A melhor estrategia fica no topo do ranking por `maior quantidade de times vencedores`, com desempate por `vitoria mais recente`.
 
 ## Deploy no GitHub Pages
 

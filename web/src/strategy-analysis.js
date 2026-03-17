@@ -1,11 +1,4 @@
-import { isPositionValid, toPositionPair } from "./champions.js";
-
-const DEFAULT_FREQ_WEIGHT = 0.8;
-const DEFAULT_RECENCY_WEIGHT = 0.2;
-
-function roundMetric(value) {
-  return Number(value.toFixed(6));
-}
+import { isPositionValid, toPositionPair } from "./winners-core.js";
 
 function toNumericDrawOrder(draw, fallbackOrder) {
   const parsed = Number(draw?.draw);
@@ -32,8 +25,6 @@ function toWinLabels(signature, drawCode, gameNumber) {
 
 export function buildStrategyRanking(draws, options = {}) {
   const n = Number(options.n ?? 6);
-  const freqWeight = Number(options.freqWeight ?? DEFAULT_FREQ_WEIGHT);
-  const recencyWeight = Number(options.recencyWeight ?? DEFAULT_RECENCY_WEIGHT);
 
   const normalizedDraws = [...draws]
     .map((draw, index) => ({ ...draw, __order: toNumericDrawOrder(draw, index) }))
@@ -52,10 +43,9 @@ export function buildStrategyRanking(draws, options = {}) {
 
     const gameNumber = validDrawsCount + 1;
     const drawCode = toDrawCode(draw.__order);
-    const seen = strategies.get(signature) ?? { frequencyAbsolute: 0, lastSeenOrder: -1, wins: [] };
+    const seen = strategies.get(signature) ?? { lastSeenOrder: -1, wins: [] };
 
     strategies.set(signature, {
-      frequencyAbsolute: seen.frequencyAbsolute + 1,
       lastSeenOrder: validDrawsCount,
       wins: [...seen.wins, toWinLabels(signature, drawCode, gameNumber)]
     });
@@ -71,28 +61,21 @@ export function buildStrategyRanking(draws, options = {}) {
     };
   }
 
-  const maxFrequency = Math.max(...[...strategies.values()].map((item) => item.frequencyAbsolute));
-  const maxRecencyIndex = Math.max(validDrawsCount - 1, 0);
-
   const ranking = [...strategies.entries()]
     .map(([signature, item]) => {
-      const frequencyNormalized = item.frequencyAbsolute / maxFrequency;
-      const recencyNormalized = maxRecencyIndex === 0 ? 1 : item.lastSeenOrder / maxRecencyIndex;
-      const finalScore = freqWeight * frequencyNormalized + recencyWeight * recencyNormalized;
-
       return {
         signature,
-        frequencyAbsolute: item.frequencyAbsolute,
-        frequencyNormalized: roundMetric(frequencyNormalized),
-        recencyNormalized: roundMetric(recencyNormalized),
-        finalScore: roundMetric(finalScore),
         winsCount: item.wins.length,
+        strategyLabel: item.wins[0]?.matrixLabel ?? signature,
+        teams: item.wins.map((win) => win.teamLabel),
+        otherWinningTeams: item.wins.slice(1).map((win) => win.teamLabel),
+        lastSeenOrder: item.lastSeenOrder,
         wins: item.wins
       };
     })
     .sort((left, right) => {
-      if (right.finalScore !== left.finalScore) return right.finalScore - left.finalScore;
-      if (right.frequencyAbsolute !== left.frequencyAbsolute) return right.frequencyAbsolute - left.frequencyAbsolute;
+      if (right.winsCount !== left.winsCount) return right.winsCount - left.winsCount;
+      if (right.lastSeenOrder !== left.lastSeenOrder) return right.lastSeenOrder - left.lastSeenOrder;
       return left.signature.localeCompare(right.signature);
     });
 
