@@ -1,6 +1,6 @@
 import "./style.css";
 import { getDrawsDataUrl } from "./data-url.js";
-import { buildChampionsRanking } from "./champions.js";
+import { buildStrategyRanking } from "./strategy-analysis.js";
 import { buildChampionsTableRows, normalizeChampionsOptions } from "./champions-view.js";
 
 document.querySelector("#app").innerHTML = `
@@ -131,7 +131,7 @@ document.querySelector("#app").innerHTML = `
 
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div class="overflow-x-auto">
-            <table class="w-full min-w-[760px] border-collapse" aria-label="Ranking de campeoes">
+            <table class="w-full min-w-[1140px] border-collapse" aria-label="Ranking de campeoes">
               <thead class="bg-indigo-700 text-white">
                 <tr>
                   <th class="px-3 py-3 text-left text-xs font-semibold">Assinatura</th>
@@ -139,6 +139,7 @@ document.querySelector("#app").innerHTML = `
                   <th class="px-3 py-3 text-center text-xs font-semibold">Freq Norm</th>
                   <th class="px-3 py-3 text-center text-xs font-semibold">Recencia</th>
                   <th class="px-3 py-3 text-center text-xs font-semibold">Score</th>
+                  <th class="px-3 py-3 text-left text-xs font-semibold">Vitorias (time/jogo e matriz/jogo)</th>
                 </tr>
               </thead>
               <tbody id="champions-table-body"></tbody>
@@ -351,23 +352,34 @@ function renderChampions() {
   championsRecency.value = String(options.recencyWeight);
   championsTop.value = String(options.top);
 
-  const result = buildChampionsRanking(rawDraws, options);
+  const result = buildStrategyRanking(rawDraws, options);
   const rows = buildChampionsTableRows(result.ranking, options.top);
 
-  championsSummary.textContent = `Validos: ${result.validDrawsCount} | Descartados: ${result.discardedDrawsCount} | Assinaturas unicas: ${result.ranking.length}`;
+  championsSummary.textContent = `Validos: ${result.validDrawsCount} | Descartados: ${result.discardedDrawsCount} | Estrategias unicas: ${result.ranking.length}`;
 
   championsTableBody.innerHTML = rows
-    .map(
-      (row) => `
+    .map((row) => {
+      const winsMarkup = row.wins
+        .map(
+          (win) =>
+            `<div class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1">${win.teamLabel} | ${win.matrixLabel}</div>`
+        )
+        .join("");
+
+      return `
       <tr class="odd:bg-white even:bg-slate-50/70">
         <td class="border-b border-slate-200 px-3 py-2 text-sm font-medium text-slate-800">${row.signature}</td>
         <td class="border-b border-slate-200 px-3 py-2 text-center text-sm">${row.frequencyAbsolute}</td>
         <td class="border-b border-slate-200 px-3 py-2 text-center text-sm">${row.frequencyNormalized}</td>
         <td class="border-b border-slate-200 px-3 py-2 text-center text-sm">${row.recencyNormalized}</td>
         <td class="border-b border-slate-200 px-3 py-2 text-center text-sm font-semibold text-indigo-700">${row.finalScore}</td>
+        <td class="border-b border-slate-200 px-3 py-2 text-xs text-slate-700">
+          <div class="mb-1 font-semibold text-slate-800">Total de vitorias: ${row.winsCount}</div>
+          <div class="grid gap-1">${winsMarkup}</div>
+        </td>
       </tr>
     `
-    )
+    })
     .join("");
 
   championsEmpty.classList.toggle("hidden", rows.length > 0);

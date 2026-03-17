@@ -7,6 +7,16 @@ Aplicacao web para consulta de sorteios, com filtros e paginacao.
 - `Tipo`
 - `Digitos`
 
+## Estrategias vencedoras
+
+Na aba `Campeoes`, o ranking mostra:
+
+- `Time/jogo`: formato `012345/jogo N da mega`
+- `Matriz/jogo`: formato `15-15-41-44-52-63/jogo N da mega sena`
+- `Outros times vencedores`: mesma estrategia (matriz) aplicada em outros jogos vencedores
+
+A melhor estrategia fica no topo do ranking (score ponderado por frequencia + recencia).
+
 ## Deploy no GitHub Pages
 
 O repositório inclui o workflow `.github/workflows/deploy-gh-pages.yml` para publicar `web/dist` automaticamente.
@@ -16,6 +26,17 @@ O repositório inclui o workflow `.github/workflows/deploy-gh-pages.yml` para pu
 3. Faça push para a branch `main`.
 
 O site sera publicado na URL do Pages do repositorio.
+
+### Validacao em producao
+
+O workflow faz:
+
+1. `lint`
+2. `typecheck`
+3. `test`
+4. `build:static`
+5. deploy no Pages
+6. smoke-check da URL publicada
 
 ## Rodar local com Docker
 
