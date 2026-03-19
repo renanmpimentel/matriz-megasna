@@ -7,6 +7,18 @@ Aplicacao web para consulta de sorteios, com filtros e paginacao.
 - `Tipo`
 - `Digitos`
 
+## Aba Estrategias
+
+A aba `Estrategias` agrupa os sorteios pela matriz completa (`Matriz 1..6`) e gera um ranking historico.
+
+- `Estrategia`: chave da matriz no formato `m1-m2-m3-m4-m5-m6`
+- `Vitorias`: quantidade de sorteios em que a estrategia apareceu
+- `%`: participacao da estrategia sobre o total de sorteios avaliados
+- `Ultima ocorrencia`: concurso mais recente da estrategia
+- `Concursos`: lista de concursos em que a estrategia ocorreu
+
+Observacao: o ranking mede recorrencia historica de padrao. Ele nao faz previsao de premio.
+
 ## Deploy no GitHub Pages
 
 O repositório inclui o workflow `.github/workflows/deploy-gh-pages.yml` para publicar `web/dist` automaticamente.

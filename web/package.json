@@ -9,6 +9,8 @@
     "build:static": "vite build",
     "build": "npm run sync:data && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "lint": "node --check src/*.js",
+    "typecheck": "node --check src/*.js",
     "test": "node --test src/*.test.js"
   },
   "devDependencies": {
