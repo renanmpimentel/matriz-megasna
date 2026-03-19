@@ -6,8 +6,6 @@
   "scripts": {
     "sync:data": "node scripts/sync-megasena.mjs",
     "dev": "vite",
-    "lint": "node --check src/*.js scripts/*.mjs",
-    "typecheck": "node --check src/*.js",
     "build:static": "vite build",
     "build": "npm run sync:data && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
