@@ -1,7 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { toDigitsKey, normalizeDigitsSearch, buildDigitsRanking } from "./digits-core.js";
+import { toDigitsKey, normalizeDigitsSearch, buildDigitsRanking, selectDigitsDraws } from "./digits-core.js";
+
+test("detalhamento seleciona o conjunto e tipo exatos sem mutar nem eliminar repetições", () => {
+  const a = { sorteioValue: 2, type: "6x6", numbers: ["04", "05", "30", "33", "41", "52"], matriz: [15, 16, 41, 44, 52, 63] };
+  const b = { ...a, sorteioValue: 1 };
+  const differentType = { ...a, type: "7x7", sorteioValue: 3 };
+  const other = { ...a, numbers: [11, 22, 33, 44, 55, 66], sorteioValue: 4 };
+  const input = [a, differentType, other, b];
+  const before = structuredClone(input);
+  const result = selectDigitsDraws(input, { type: "6x6", key: "123450" });
+  assert.deepEqual(result, [b, a]);
+  assert.deepEqual(result[0].matriz, [15, 16, 41, 44, 52, 63]);
+  assert.equal(result[0].numbers[0], "04");
+  assert.deepEqual(input, before);
+  assert.deepEqual(selectDigitsDraws(input, { type: "6x6", key: "" }), []);
+  assert.deepEqual(selectDigitsDraws(input, { type: "6x6", key: "112345" }), []);
+  assert.deepEqual(selectDigitsDraws([], { type: "6x6", key: "012345" }), []);
+});
 
 const row = (id, numbers) => {
   const key = [...new Set(numbers.map(n => String(n).padStart(2, "0")).join(""))].sort().join("");
@@ -72,6 +89,11 @@ test("base até 3069 confirma 123450, paginação e cobertura dos grupos", () =>
   assert.equal(first.entries.length, 25);
   assert.equal(first.entries[0].label, "123450");
   assert.equal(first.entries[0].count, 64);
+  const details = selectDigitsDraws(rows, { type: "6x6", key: "012345" });
+  assert.equal(details.length, 64);
+  assert.equal(details[0].sorteioValue, 1);
+  assert.equal(details.at(-1).sorteioValue, 3042);
+  assert.deepEqual(details[0].numbers, [4, 5, 30, 33, 41, 52]);
   assert.equal(first.entries[0].lastDraw, 3042);
   assert.equal((first.entries[0].frequency * 100).toFixed(2), "9.17");
   const entries = [];

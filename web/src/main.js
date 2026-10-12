@@ -1,7 +1,7 @@
 import "./style.css";
 import { loadDrawData } from "./draw-data-loader.js";
 import { buildDataStatusLabel } from "./data-status.js";
-import { buildDigitsRanking } from "./digits-core.js";
+import { buildDigitsRanking, selectDigitsDraws } from "./digits-core.js";
 import { buildDigitsTableRows, buildDigitsSummary } from "./digits-view.js";
 import { buildStrategiesRanking, buildTypeFrequency, buildTypeCadence } from "./strategies-core.js";
 import { buildStrategiesTableRows, buildTypeFrequencyChart, buildCadenceOverview, buildCadenceDetails, normalizeStrategiesOptions } from "./strategies-view.js";
@@ -202,7 +202,7 @@ document.querySelector("#app").innerHTML = `
             </label>
             <div class="flex items-end"><button id="digits-clear" type="button" class="h-11 w-full rounded-xl bg-emerald-700 px-4 text-base font-semibold text-white hover:bg-emerald-800">Limpar busca</button></div>
           </div>
-          <p id="digits-help" class="mt-3 text-sm text-slate-700">Busca exata: informe cada dígito uma única vez, em qualquer ordem. O zero é exibido no final. Percentuais sobre todos os sorteios do tipo selecionado, sem alteração pela busca.</p>
+          <p id="digits-help" class="mt-3 text-sm text-slate-700">Busca exata: informe cada dígito uma única vez, em qualquer ordem. O zero é exibido no final. Percentuais sobre todos os sorteios do tipo selecionado, sem alteração pela busca. Clique em um conjunto de dígitos para ver as matrizes e dezenas de cada sorteio.</p>
           <p id="digits-error" class="mt-2 hidden text-base font-medium text-red-800" role="status"></p>
           <p id="digits-summary" class="mt-3 rounded-xl bg-slate-50 p-3 text-base text-slate-700" aria-live="polite"></p>
         </section>
@@ -264,6 +264,7 @@ const digitsSearch = document.querySelector("#digits-search");
 const digitsPrev = document.querySelector("#digits-prev");
 const digitsNext = document.querySelector("#digits-next");
 let digitsPage = 1;
+let expandedDigitsKey = "";
 
 const strategyFilterInput = document.querySelector("#strategy-filter");
 const strategiesTopSelect = document.querySelector("#strategies-top");
@@ -445,10 +446,13 @@ function setActiveTab(tab) {
   }
 }
 
-function renderDigits() {
+function renderDigits({ keepExpanded = false, focusId = "" } = {}) {
+  if (!keepExpanded) expandedDigitsKey = "";
   const result = buildDigitsRanking(allRows, { type: digitsType.value, query: digitsSearch.value, page: digitsPage });
   digitsPage = result.page;
-  document.querySelector("#digits-table-body").innerHTML = buildDigitsTableRows(result.entries);
+  const draws = expandedDigitsKey ? selectDigitsDraws(allRows, { type: digitsType.value, key: expandedDigitsKey }) : [];
+  document.querySelector("#digits-table-body").innerHTML = buildDigitsTableRows(result.entries, { expandedKey: expandedDigitsKey, type: digitsType.value, draws });
+  if (focusId) document.getElementById(focusId)?.focus({ preventScroll: true });
   document.querySelector("#digits-summary").textContent = allRows.length ? buildDigitsSummary(result, digitsType.value) : "Nenhum sorteio disponível para agrupar.";
   const errorElement = document.querySelector("#digits-error");
   errorElement.textContent = result.error;
@@ -498,6 +502,14 @@ async function init() {
   digitsType.disabled = !digitTypes.length;
   digitsSearch.disabled = !digitTypes.length;
   renderDigits();
+  document.querySelector("#digits-table-body").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-digits-toggle]");
+    if (!button) return;
+    const key = button.dataset.digitsToggle;
+    expandedDigitsKey = expandedDigitsKey === key ? "" : key;
+    const focusId = button.id.startsWith("digits-close-") ? `digits-toggle-${key}` : button.id;
+    renderDigits({ keepExpanded: true, focusId });
+  });
   for (const [element, event] of [[digitsType, "change"], [digitsSearch, "input"]]) {
     element.addEventListener(event, () => { digitsPage = 1; renderDigits(); });
   }

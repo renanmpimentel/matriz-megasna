@@ -12,6 +12,13 @@ export function normalizeDigitsSearch(input, type) {
   return { key: [...text].sort().join(""), error: "" };
 }
 
+export function selectDigitsDraws(rows, { type, key }) {
+  const search = normalizeDigitsSearch(key, type);
+  if (search.error || !search.key) return [];
+  return rows.filter(row => row.type === type && toDigitsKey(row) === search.key)
+    .sort((a, b) => a.sorteioValue - b.sorteioValue);
+}
+
 export function buildDigitsRanking(rows, { type, query = "", page = 1 }) {
   const selected = rows.filter(row => row.type === type);
   const groups = new Map();
