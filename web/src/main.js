@@ -1,8 +1,10 @@
 import "./style.css";
 import { loadDrawData } from "./draw-data-loader.js";
 import { buildDataStatusLabel } from "./data-status.js";
-import { buildStrategiesRanking } from "./strategies-core.js";
-import { buildStrategiesTableRows, normalizeStrategiesOptions } from "./strategies-view.js";
+import { buildDigitsRanking } from "./digits-core.js";
+import { buildDigitsTableRows, buildDigitsSummary } from "./digits-view.js";
+import { buildStrategiesRanking, buildTypeFrequency, buildTypeCadence } from "./strategies-core.js";
+import { buildStrategiesTableRows, buildTypeFrequencyChart, buildCadenceOverview, buildCadenceDetails, normalizeStrategiesOptions } from "./strategies-view.js";
 
 document.querySelector("#app").innerHTML = `
   <main class="min-h-screen bg-linear-to-b from-emerald-50 via-white to-amber-50 text-slate-800">
@@ -13,6 +15,7 @@ document.querySelector("#app").innerHTML = `
         <div class="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Navegacao principal">
           <button id="tab-draws" type="button" aria-selected="true" class="rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Sorteios</button>
           <button id="tab-strategies" type="button" aria-selected="false" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Estrategias</button>
+          <button id="tab-digits" type="button" aria-selected="false" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Dígitos</button>
         </div>
       </header>
 
@@ -112,13 +115,34 @@ document.querySelector("#app").innerHTML = `
       </section>
 
       <section id="panel-strategies" class="hidden space-y-4">
+        <section class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm md:p-5" aria-labelledby="type-frequency-title">
+          <h2 id="type-frequency-title" class="text-xl font-semibold text-slate-900">Frequência total por tipo de matriz</h2>
+          <div id="type-frequency-chart"></div>
+        </section>
+        <section class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm md:p-5" aria-labelledby="cadence-title">
+          <h2 id="cadence-title" class="text-xl font-semibold text-slate-900">Cadência por tipo</h2>
+          <div id="cadence-overview"></div>
+          <div id="cadence-selection" class="mt-5 hidden">
+            <label for="cadence-type" class="block text-base font-semibold text-slate-800">Ver intervalos do tipo</label>
+            <select id="cadence-type" class="mt-2 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base focus-visible:outline-2 focus-visible:outline-emerald-700 sm:w-48"></select>
+            <div id="cadence-details" aria-live="polite"></div>
+          </div>
+          <p class="mt-4 text-sm text-slate-700">Médias históricas não representam ciclos fixos nem previsão. Um tipo estar há vários concursos sem aparecer não significa que aparecerá no próximo. Os filtros de estratégias não alteram esta análise.</p>
+        </section>
         <section class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm md:p-5">
           <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">Filtro de estrategias</h2>
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
             <label class="text-sm font-medium text-slate-700">
               Estrategia (matriz completa)
               <input id="strategy-filter" type="text" placeholder="Ex: 14-15-42-44-52-63"
                 class="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-base outline-none ring-0 transition focus:border-emerald-500" />
+            </label>
+            <label class="text-sm font-medium text-slate-700">
+              Tipo da matriz
+              <select id="strategies-type"
+                class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base outline-none transition focus:border-emerald-500">
+                <option value="">Todos</option>
+              </select>
             </label>
             <label class="text-sm font-medium text-slate-700">
               Top N
@@ -138,7 +162,8 @@ document.querySelector("#app").innerHTML = `
               </button>
             </div>
           </div>
-          <p id="strategies-summary" class="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700"></p>
+          <p class="mt-3 text-sm text-slate-700">Frequência da matriz completa (Matriz 1 a 6) por tipo. A frequência no tipo divide as ocorrências da matriz pelo total de sorteios daquele tipo. O filtro de matriz e o Top N não alteram essa base. Frequência histórica não indica chance de prêmio.</p>
+          <p id="strategies-summary" class="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700" aria-live="polite"></p>
         </section>
 
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -148,8 +173,11 @@ document.querySelector("#app").innerHTML = `
                 <tr>
                   <th class="px-3 py-3 text-center text-xs font-semibold">#</th>
                   <th class="px-3 py-3 text-left text-xs font-semibold">Estrategia</th>
-                  <th class="px-3 py-3 text-center text-xs font-semibold">Vitorias</th>
-                  <th class="px-3 py-3 text-center text-xs font-semibold">%</th>
+                  <th class="px-3 py-3 text-center text-xs font-semibold">Tipo</th>
+                  <th class="px-3 py-3 text-center text-xs font-semibold">Ocorrências</th>
+                  <th class="px-3 py-3 text-center text-xs font-semibold">Sorteios do tipo</th>
+                  <th class="px-3 py-3 text-center text-xs font-semibold">Frequência no tipo</th>
+                  <th class="px-3 py-3 text-center text-xs font-semibold">Frequência geral</th>
                   <th class="px-3 py-3 text-center text-xs font-semibold">Ultima ocorrencia</th>
                   <th class="px-3 py-3 text-left text-xs font-semibold">Concursos</th>
                 </tr>
@@ -159,6 +187,48 @@ document.querySelector("#app").innerHTML = `
           </div>
           <p id="strategies-empty" class="hidden border-t border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Nenhuma estrategia encontrada para o filtro informado.</p>
         </section>
+      </section>
+
+      <section id="panel-digits" class="hidden space-y-4" aria-labelledby="digits-title">
+        <section class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm md:p-5">
+          <h2 id="digits-title" class="text-xl font-semibold text-slate-900">Frequência por conjunto de dígitos</h2>
+          <p class="mt-2 max-w-prose text-base text-slate-700">Cada linha reúne sorteios com exatamente os mesmos dígitos, independentemente da ordem ou repetição nas dezenas. Exemplo: 123450 representa 0, 1, 2, 3, 4 e 5.</p>
+          <div class="mt-4 grid gap-3 md:grid-cols-3">
+            <label class="text-base font-medium text-slate-700">Tipo
+              <select id="digits-type" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 focus-visible:outline-2 focus-visible:outline-emerald-700"></select>
+            </label>
+            <label class="text-base font-medium text-slate-700">Buscar conjunto de dígitos
+              <input id="digits-search" type="text" inputmode="numeric" placeholder="Ex.: 123450 ou 012345" aria-describedby="digits-help digits-error" class="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 placeholder:text-slate-600 focus-visible:outline-2 focus-visible:outline-emerald-700" />
+            </label>
+            <div class="flex items-end"><button id="digits-clear" type="button" class="h-11 w-full rounded-xl bg-emerald-700 px-4 text-base font-semibold text-white hover:bg-emerald-800">Limpar busca</button></div>
+          </div>
+          <p id="digits-help" class="mt-3 text-sm text-slate-700">Busca exata: informe cada dígito uma única vez, em qualquer ordem. O zero é exibido no final. Percentuais sobre todos os sorteios do tipo selecionado, sem alteração pela busca.</p>
+          <p id="digits-error" class="mt-2 hidden text-base font-medium text-red-800" role="status"></p>
+          <p id="digits-summary" class="mt-3 rounded-xl bg-slate-50 p-3 text-base text-slate-700" aria-live="polite"></p>
+        </section>
+        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[760px] border-collapse text-base" aria-label="Frequência dos conjuntos de dígitos">
+              <thead class="bg-emerald-800 text-white"><tr>
+                <th scope="col" class="px-3 py-3 text-left">Dígitos</th>
+                <th scope="col" class="px-3 py-3">Ocorrências</th>
+                <th scope="col" class="px-3 py-3">Frequência no tipo</th>
+                <th scope="col" class="px-3 py-3">Último concurso</th>
+                <th scope="col" class="px-3 py-3 text-left">Concursos</th>
+              </tr></thead>
+              <tbody id="digits-table-body"></tbody>
+            </table>
+          </div>
+          <p id="digits-empty" class="hidden p-4 text-base text-slate-700"></p>
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 p-3">
+            <p id="digits-page-info" class="text-base text-slate-700"></p>
+            <div class="flex gap-2">
+              <button id="digits-prev" type="button" class="h-11 rounded-lg border border-slate-300 bg-white px-4 text-base disabled:cursor-not-allowed disabled:opacity-50">Anterior</button>
+              <button id="digits-next" type="button" class="h-11 rounded-lg border border-slate-300 bg-white px-4 text-base disabled:cursor-not-allowed disabled:opacity-50">Próxima</button>
+            </div>
+          </div>
+        </section>
+        <p class="text-sm text-slate-700">Frequência histórica não prevê resultados futuros.</p>
       </section>
 
       <footer class="mt-4 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-center text-sm text-slate-600">
@@ -188,11 +258,16 @@ const lastUpdatedElement = document.querySelector("#last-updated");
 
 const tabDraws = document.querySelector("#tab-draws");
 const tabStrategies = document.querySelector("#tab-strategies");
-const panelDraws = document.querySelector("#panel-draws");
-const panelStrategies = document.querySelector("#panel-strategies");
+const tabDigits = document.querySelector("#tab-digits");
+const digitsType = document.querySelector("#digits-type");
+const digitsSearch = document.querySelector("#digits-search");
+const digitsPrev = document.querySelector("#digits-prev");
+const digitsNext = document.querySelector("#digits-next");
+let digitsPage = 1;
 
 const strategyFilterInput = document.querySelector("#strategy-filter");
 const strategiesTopSelect = document.querySelector("#strategies-top");
+const strategiesTypeSelect = document.querySelector("#strategies-type");
 const clearStrategiesButton = document.querySelector("#clear-strategies");
 const strategiesSummary = document.querySelector("#strategies-summary");
 const strategiesTableBody = document.querySelector("#strategies-table-body");
@@ -337,7 +412,8 @@ function applyFilters() {
 function renderStrategies() {
   const options = normalizeStrategiesOptions({
     top: strategiesTopSelect.value,
-    strategyFilter: strategyFilterInput.value
+    strategyFilter: strategyFilterInput.value,
+    typeFilter: strategiesTypeSelect.value
   });
 
   strategyFilterInput.value = options.strategyFilter;
@@ -350,28 +426,42 @@ function renderStrategies() {
 
   const leader = result.ranking[0];
   if (!leader) {
-    strategiesSummary.textContent = `Nenhuma estrategia encontrada. Sorteios avaliados: ${result.totalDraws}.`;
+    strategiesSummary.textContent = `Nenhuma matriz encontrada. Tipo: ${options.typeFilter || "Todos"} | Sorteios nesta base: ${result.selectedTypeDraws} de ${result.totalDraws}.`;
     return;
   }
 
-  strategiesSummary.textContent = `Sorteios avaliados: ${result.totalDraws} | Estrategias encontradas: ${result.ranking.length} | Estrategia lider: ${leader.strategyKey} (${leader.wins} ocorrencias)`;
+  strategiesSummary.textContent = `Tipo: ${options.typeFilter || "Todos"} | Sorteios nesta base: ${result.selectedTypeDraws} de ${result.totalDraws} | Matrizes exibidas: ${result.ranking.length} de ${result.totalStrategies} | Matriz mais frequente: ${leader.strategyKey} (${leader.wins} ocorrências)`;
 }
 
 function setActiveTab(tab) {
-  const showDraws = tab === "draws";
-  panelDraws.classList.toggle("hidden", !showDraws);
-  panelStrategies.classList.toggle("hidden", showDraws);
+  for (const name of ["draws", "strategies", "digits"]) {
+    const active = name === tab;
+    document.querySelector(`#panel-${name}`).classList.toggle("hidden", !active);
+    const button = document.querySelector(`#tab-${name}`);
+    button.setAttribute("aria-selected", String(active));
+    button.className = active
+      ? "rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
+      : "rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700";
+  }
+}
 
-  tabDraws.setAttribute("aria-selected", showDraws ? "true" : "false");
-  tabStrategies.setAttribute("aria-selected", showDraws ? "false" : "true");
-
-  tabDraws.className = showDraws
-    ? "rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
-    : "rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700";
-
-  tabStrategies.className = showDraws
-    ? "rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
-    : "rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2 text-sm font-semibold text-white";
+function renderDigits() {
+  const result = buildDigitsRanking(allRows, { type: digitsType.value, query: digitsSearch.value, page: digitsPage });
+  digitsPage = result.page;
+  document.querySelector("#digits-table-body").innerHTML = buildDigitsTableRows(result.entries);
+  document.querySelector("#digits-summary").textContent = allRows.length ? buildDigitsSummary(result, digitsType.value) : "Nenhum sorteio disponível para agrupar.";
+  const errorElement = document.querySelector("#digits-error");
+  errorElement.textContent = result.error;
+  errorElement.classList.toggle("hidden", !result.error);
+  digitsSearch.setAttribute("aria-invalid", String(Boolean(result.error)));
+  const empty = document.querySelector("#digits-empty");
+  empty.classList.toggle("hidden", result.entries.length > 0 || Boolean(result.error));
+  empty.textContent = allRows.length ? "Este conjunto não apareceu na base para o tipo selecionado." : "Nenhum sorteio disponível.";
+  const first = result.matchedGroups ? (result.page - 1) * 25 + 1 : 0;
+  const last = result.matchedGroups ? first + result.entries.length - 1 : 0;
+  document.querySelector("#digits-page-info").textContent = `Conjuntos ${first}–${last} de ${result.matchedGroups} · Página ${result.page} de ${result.totalPages}`;
+  digitsPrev.disabled = result.page <= 1;
+  digitsNext.disabled = result.page >= result.totalPages;
 }
 
 async function init() {
@@ -384,9 +474,40 @@ async function init() {
   });
 
   allRows = draws.map(buildRow);
+  document.querySelector("#type-frequency-chart").innerHTML = buildTypeFrequencyChart(buildTypeFrequency(allRows));
+  const cadence = buildTypeCadence(allRows);
+  document.querySelector("#cadence-overview").innerHTML = buildCadenceOverview(cadence);
+  if (cadence.status === "ready") {
+    const cadenceSelect = document.querySelector("#cadence-type");
+    cadenceSelect.innerHTML = cadence.entries.map(entry => `<option>${entry.type}</option>`).join("");
+    cadenceSelect.value = cadence.entries.some(entry => entry.type === "6x6") ? "6x6" : cadence.entries[0].type;
+    const renderCadenceDetails = () => {
+      document.querySelector("#cadence-details").innerHTML = buildCadenceDetails(cadence.entries.find(entry => entry.type === cadenceSelect.value));
+    };
+    document.querySelector("#cadence-selection").classList.remove("hidden");
+    cadenceSelect.addEventListener("change", renderCadenceDetails);
+    renderCadenceDetails();
+  }
 
   const types = [...new Set(allRows.map((row) => row.type))].sort();
   typeFilter.innerHTML = `<option value="">Todos</option>${types.map((t) => `<option>${t}</option>`).join("")}`;
+  strategiesTypeSelect.innerHTML = typeFilter.innerHTML;
+  const digitTypes = [...types].sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+  digitsType.innerHTML = digitTypes.map(type => `<option>${type}</option>`).join("");
+  digitsType.value = digitTypes.includes("6x6") ? "6x6" : (digitTypes[0] ?? "");
+  digitsType.disabled = !digitTypes.length;
+  digitsSearch.disabled = !digitTypes.length;
+  renderDigits();
+  for (const [element, event] of [[digitsType, "change"], [digitsSearch, "input"]]) {
+    element.addEventListener(event, () => { digitsPage = 1; renderDigits(); });
+  }
+  document.querySelector("#digits-clear").addEventListener("click", () => {
+    digitsSearch.value = "";
+    digitsPage = 1;
+    renderDigits();
+  });
+  digitsPrev.addEventListener("click", () => { digitsPage -= 1; renderDigits(); });
+  digitsNext.addEventListener("click", () => { digitsPage += 1; renderDigits(); });
 
   filteredRows = [...allRows];
   renderPage();
@@ -455,8 +576,9 @@ async function init() {
 
   tabDraws.addEventListener("click", () => setActiveTab("draws"));
   tabStrategies.addEventListener("click", () => setActiveTab("strategies"));
+  tabDigits.addEventListener("click", () => setActiveTab("digits"));
 
-  [strategyFilterInput, strategiesTopSelect].forEach((element) => {
+  [strategyFilterInput, strategiesTopSelect, strategiesTypeSelect].forEach((element) => {
     element.addEventListener("input", renderStrategies);
     element.addEventListener("change", renderStrategies);
   });
@@ -464,6 +586,7 @@ async function init() {
   clearStrategiesButton.addEventListener("click", () => {
     strategyFilterInput.value = "";
     strategiesTopSelect.value = "10";
+    strategiesTypeSelect.value = "";
     renderStrategies();
   });
 }
