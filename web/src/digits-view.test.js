@@ -48,3 +48,20 @@ test("resumo distingue total de grupos dos resultados de busca", () => {
   assert.match(text, /130 conjuntos/);
   assert.match(text, /1 resultado/);
 });
+
+test("detalhamento informa menor e maior soma apenas do conjunto aberto", () => {
+  const draws = [249, 165, 117, 249].map((sum, index) => ({ sorteioValue: index + 1, sum, matriz: [], numbers: [] }));
+  const html = buildDigitsTableRows([entry, { ...entry, key: "123456" }], { expandedKey: entry.key, type: "6x6", draws });
+  assert.match(html, /Menor soma: <strong>117<\/strong>/);
+  assert.match(html, /Maior soma: <strong>249<\/strong>/);
+  assert.equal((html.match(/data-digit-sums/g) ?? []).length, 1);
+  assert.doesNotMatch(buildDigitsTableRows([entry]), /Menor soma|Maior soma/);
+});
+
+test("ocorrência única mostra a mesma soma nos dois extremos e vazio não mostra Infinity", () => {
+  const html = buildDigitsTableRows([entry], { expandedKey: entry.key, type: "6x6", draws: [{ sorteioValue: 1, sum: 165, matriz: [], numbers: [] }] });
+  assert.match(html, /Menor soma: <strong>165<\/strong>/);
+  assert.match(html, /Maior soma: <strong>165<\/strong>/);
+  const empty = buildDigitsTableRows([entry], { expandedKey: entry.key, type: "6x6", draws: [] });
+  assert.doesNotMatch(empty, /Infinity|NaN|Menor soma|Maior soma/);
+});

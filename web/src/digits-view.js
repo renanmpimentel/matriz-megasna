@@ -5,6 +5,10 @@ export function buildDigitsSummary(result, type) {
 }
 
 export function buildDigitsTableRows(entries, { expandedKey = "", type = "", draws = [] } = {}) {
+  const sums = draws.map(row => row.sum);
+  const sumRange = sums.length
+    ? `<p data-digit-sums class="mb-3 text-base tabular-nums text-slate-800">Menor soma: <strong>${Math.min(...sums)}</strong> · Maior soma: <strong>${Math.max(...sums)}</strong></p>`
+    : "";
   return entries.map((entry, index) => {
     const expanded = expandedKey === entry.key;
     return `
@@ -26,6 +30,7 @@ export function buildDigitsTableRows(entries, { expandedKey = "", type = "", dra
             <h3 class="text-lg font-semibold text-slate-900">Sorteios do conjunto ${entry.label} <span class="font-normal">· Tipo ${type} · ${entry.count} ocorrências</span></h3>
             <button id="digits-close-${entry.key}" type="button" data-digits-toggle="${entry.key}" class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-base text-emerald-800 focus-visible:outline-2 focus-visible:outline-emerald-700">Recolher sorteios</button>
           </div>
+          ${sumRange}
           <div class="overflow-x-auto">
             <table class="w-full min-w-[1140px] border-collapse text-base tabular-nums" aria-label="Matrizes, números e soma por sorteio do conjunto ${entry.label}">
               <thead class="bg-emerald-800 text-white"><tr>
