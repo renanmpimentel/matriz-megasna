@@ -1,5 +1,6 @@
 web/node_modules/
 web/dist/
+.worktrees/
 zip/
 Mega.jar
 Sena.javap.txt
