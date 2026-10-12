@@ -1,4 +1,7 @@
 import "./style.css";
+import { buildMatrix } from "./matrix-core.js";
+import { buildGeneratorPanel } from "./generator-view.js";
+import { initGenerator } from "./generator-ui.js";
 import { loadDrawData } from "./draw-data-loader.js";
 import { buildDataStatusLabel } from "./data-status.js";
 import { buildDigitsRanking, selectDigitsDraws } from "./digits-core.js";
@@ -16,6 +19,7 @@ document.querySelector("#app").innerHTML = `
           <button id="tab-draws" type="button" aria-selected="true" class="rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Sorteios</button>
           <button id="tab-strategies" type="button" aria-selected="false" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Estrategias</button>
           <button id="tab-digits" type="button" aria-selected="false" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Dígitos</button>
+          <button id="tab-generator" type="button" aria-selected="false" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Gerador</button>
         </div>
       </header>
 
@@ -231,6 +235,8 @@ document.querySelector("#app").innerHTML = `
         <p class="text-sm text-slate-700">Frequência histórica não prevê resultados futuros.</p>
       </section>
 
+      ${buildGeneratorPanel()}
+
       <footer class="mt-4 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-center text-sm text-slate-600">
         <span id="last-updated">Dados atualizados em: carregando...</span>
       </footer>
@@ -265,6 +271,8 @@ const digitsPrev = document.querySelector("#digits-prev");
 const digitsNext = document.querySelector("#digits-next");
 let digitsPage = 1;
 let expandedDigitsKey = "";
+let digitsSumOrder = "count-desc";
+let generator;
 
 const strategyFilterInput = document.querySelector("#strategy-filter");
 const strategiesTopSelect = document.querySelector("#strategies-top");
@@ -288,15 +296,7 @@ function buildRow(draw, index) {
   const numbers = draw.numbers.map((n) => String(n).padStart(2, "0"));
   const concat = numbers.join("");
   const digits = sortedWithoutDuplicates(concat);
-  const matriz = [];
-
-  for (let i = 0; i < 6; i += 1) {
-    const d1 = concat[i * 2];
-    const d2 = concat[i * 2 + 1];
-    const p1 = digits.indexOf(d1) + 1;
-    const p2 = digits.indexOf(d2) + 1;
-    matriz.push(Number(`${p1}${p2}`));
-  }
+  const matriz = buildMatrix(numbers);
 
   const sum = draw.numbers.reduce((acc, n) => acc + n, 0);
   const type = `${digits.length}x${digits.length}`;
@@ -435,7 +435,8 @@ function renderStrategies() {
 }
 
 function setActiveTab(tab) {
-  for (const name of ["draws", "strategies", "digits"]) {
+  if (tab !== "generator") generator?.cancel();
+  for (const name of ["draws", "strategies", "digits", "generator"]) {
     const active = name === tab;
     document.querySelector(`#panel-${name}`).classList.toggle("hidden", !active);
     const button = document.querySelector(`#tab-${name}`);
@@ -451,7 +452,7 @@ function renderDigits({ keepExpanded = false, focusId = "" } = {}) {
   const result = buildDigitsRanking(allRows, { type: digitsType.value, query: digitsSearch.value, page: digitsPage });
   digitsPage = result.page;
   const draws = expandedDigitsKey ? selectDigitsDraws(allRows, { type: digitsType.value, key: expandedDigitsKey }) : [];
-  document.querySelector("#digits-table-body").innerHTML = buildDigitsTableRows(result.entries, { expandedKey: expandedDigitsKey, type: digitsType.value, draws });
+  document.querySelector("#digits-table-body").innerHTML = buildDigitsTableRows(result.entries, { expandedKey: expandedDigitsKey, type: digitsType.value, draws, sumOrder: digitsSumOrder });
   if (focusId) document.getElementById(focusId)?.focus({ preventScroll: true });
   document.querySelector("#digits-summary").textContent = allRows.length ? buildDigitsSummary(result, digitsType.value) : "Nenhum sorteio disponível para agrupar.";
   const errorElement = document.querySelector("#digits-error");
@@ -478,6 +479,7 @@ async function init() {
   });
 
   allRows = draws.map(buildRow);
+  generator = initGenerator(document.querySelector("#panel-generator"), allRows);
   document.querySelector("#type-frequency-chart").innerHTML = buildTypeFrequencyChart(buildTypeFrequency(allRows));
   const cadence = buildTypeCadence(allRows);
   document.querySelector("#cadence-overview").innerHTML = buildCadenceOverview(cadence);
@@ -502,6 +504,11 @@ async function init() {
   digitsType.disabled = !digitTypes.length;
   digitsSearch.disabled = !digitTypes.length;
   renderDigits();
+  document.querySelector("#digits-table-body").addEventListener("change", (event) => {
+    if (event.target.id !== "digits-sum-order") return;
+    digitsSumOrder = event.target.value;
+    renderDigits({ keepExpanded: true, focusId: "digits-sum-order" });
+  });
   document.querySelector("#digits-table-body").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-digits-toggle]");
     if (!button) return;
@@ -589,6 +596,7 @@ async function init() {
   tabDraws.addEventListener("click", () => setActiveTab("draws"));
   tabStrategies.addEventListener("click", () => setActiveTab("strategies"));
   tabDigits.addEventListener("click", () => setActiveTab("digits"));
+  document.querySelector("#tab-generator").addEventListener("click", () => setActiveTab("generator"));
 
   [strategyFilterInput, strategiesTopSelect, strategiesTypeSelect].forEach((element) => {
     element.addEventListener("input", renderStrategies);

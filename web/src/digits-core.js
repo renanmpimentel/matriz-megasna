@@ -19,6 +19,18 @@ export function selectDigitsDraws(rows, { type, key }) {
     .sort((a, b) => a.sorteioValue - b.sorteioValue);
 }
 
+export function buildSumFrequency(draws, order = "sum-asc") {
+  const counts = new Map();
+  for (const draw of draws) counts.set(draw.sum, (counts.get(draw.sum) ?? 0) + 1);
+  const entries = [...counts].map(([sum, count]) => ({ sum, count }));
+  return entries.sort((a, b) => {
+    if (order === "count-desc") return b.count - a.count || a.sum - b.sum;
+    if (order === "count-asc") return a.count - b.count || a.sum - b.sum;
+    if (order === "sum-desc") return b.sum - a.sum;
+    return a.sum - b.sum;
+  });
+}
+
 export function buildDigitsRanking(rows, { type, query = "", page = 1 }) {
   const selected = rows.filter(row => row.type === type);
   const groups = new Map();

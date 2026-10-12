@@ -4,6 +4,27 @@ import { buildDigitsTableRows, buildDigitsSummary } from "./digits-view.js";
 
 const entry = { key: "012345", label: "123450", count: 64, frequency: 64 / 698, lastDraw: 3042, draws: [1, 38, 3042] };
 
+test("ordenação explícita começa pelas mais frequentes e mantém opção e linhas sincronizadas", () => {
+  const draws = [69, 165, 165, 249].map((sum, index) => ({ sum, sorteioValue: index + 1, matriz: [], numbers: [] }));
+  const options = { expandedKey: entry.key, type: "6x6", draws };
+  const html = buildDigitsTableRows([entry], options);
+  assert.match(html, /<label[^>]*for="digits-sum-order"[^>]*>Ordenar por<\/label>/);
+  assert.match(html, /<select[^>]*id="digits-sum-order"/);
+  assert.match(html, /<option value="count-desc" selected>Mais ocorrências<\/option>/);
+  for (const label of ["Menos ocorrências", "Maior soma", "Menor soma"]) assert.ok(html.includes(label));
+  assert.deepEqual([...html.matchAll(/data-sum-frequency="(\d+)"/g)].map(match => Number(match[1])), [165, 69, 249]);
+  assert.match(html, /Mais frequente/);
+  for (const [sumOrder, expected] of Object.entries({ "count-desc": [165, 69, 249], "count-asc": [69, 249, 165], "sum-desc": [249, 165, 69], "sum-asc": [69, 165, 249] })) {
+    const sorted = buildDigitsTableRows([entry], { ...options, sumOrder });
+    assert.deepEqual([...sorted.matchAll(/data-sum-frequency="(\d+)"/g)].map(match => Number(match[1])), expected);
+    assert.match(sorted, new RegExp(`<option value="${sumOrder}" selected>`));
+    assert.match(sorted, /Total de sorteios<\/th><td[^>]*>4<\/td>/);
+    assert.equal((sorted.match(/data-digit-draw=/g) ?? []).length, 4);
+  }
+  const unique = buildDigitsTableRows([entry], { ...options, draws: draws.slice(0, 2) });
+  assert.doesNotMatch(unique, /Mais frequente/);
+});
+
 test("dígitos e ação são botões acessíveis que controlam a mesma expansão", () => {
   const html = buildDigitsTableRows([entry]);
   assert.match(html, /123450/);
@@ -27,7 +48,7 @@ test("expansão mostra 14 colunas, incluindo a soma das dezenas de cada sorteio"
   assert.match(html, /Matriz 6/);
   assert.match(html, /Número 6/);
   assert.match(html, />Soma<\/th>/);
-  const detailTable = html.match(/<table[\s\S]*?<\/table>/)[0];
+  const detailTable = html.match(/<table[^>]*aria-label="Matrizes[^>]*>[\s\S]*?<\/table>/)[0];
   assert.equal((detailTable.match(/scope="col"/g) ?? []).length, 14);
   const detailRows = [...detailTable.matchAll(/<tr data-digit-draw="(\d+)"[\s\S]*?<\/tr>/g)];
   for (const [index, match] of detailRows.entries()) {
@@ -37,7 +58,7 @@ test("expansão mostra 14 colunas, incluindo a soma das dezenas de cada sorteio"
   assert.match(html, />04<\/td>/);
   assert.match(html, />05<\/td>/);
   assert.equal((html.match(/data-digit-draw=/g) ?? []).length, 2);
-  assert.equal((html.match(/<table/g) ?? []).length, 1);
+  assert.equal((html.match(/<table/g) ?? []).length, 2);
   assert.equal((html.match(/aria-expanded="true"/g) ?? []).length, 2);
   assert.match(html, /9,17%/);
 });
@@ -64,4 +85,18 @@ test("ocorrência única mostra a mesma soma nos dois extremos e vazio não most
   assert.match(html, /Maior soma: <strong>165<\/strong>/);
   const empty = buildDigitsTableRows([entry], { expandedKey: entry.key, type: "6x6", draws: [] });
   assert.doesNotMatch(empty, /Infinity|NaN|Menor soma|Maior soma/);
+});
+
+test("tabela de somas separada mostra uma linha por soma e total dos sorteios do grupo", () => {
+  const draws = [69, 165, 69].map((sum, index) => ({ sum, sorteioValue: index + 1, matriz: [], numbers: [] }));
+  const html = buildDigitsTableRows([entry], { expandedKey: entry.key, type: "6x6", draws });
+  assert.match(html, /Frequência das somas/);
+  assert.match(html, /data-digit-sum-frequency/);
+  const rows = [...html.matchAll(/<tr data-sum-frequency="(\d+)"[\s\S]*?<\/tr>/g)];
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0][1], "69");
+  assert.match(rows[0][0], />2<\/td>/);
+  assert.match(rows[1][0], />1<\/td>/);
+  assert.match(html, /Total de sorteios<\/th><td[^>]*>3<\/td>/);
+  assert.doesNotMatch(buildDigitsTableRows([entry]), /data-digit-sum-frequency/);
 });

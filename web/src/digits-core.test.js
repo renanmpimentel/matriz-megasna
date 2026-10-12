@@ -1,7 +1,38 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { toDigitsKey, normalizeDigitsSearch, buildDigitsRanking, selectDigitsDraws } from "./digits-core.js";
+import { toDigitsKey, normalizeDigitsSearch, buildDigitsRanking, selectDigitsDraws, buildSumFrequency } from "./digits-core.js";
+
+test("frequência aceita quatro ordens numéricas e desempata ocorrências pela menor soma", () => {
+  const draws = [165, 69, 249, 69, 165, 99].map(sum => ({ sum }));
+  const before = structuredClone(draws);
+  for (const [order, expected] of Object.entries({
+    "count-desc": [69, 165, 99, 249], "count-asc": [99, 249, 69, 165],
+    "sum-desc": [249, 165, 99, 69], "sum-asc": [69, 99, 165, 249]
+  })) {
+    const result = buildSumFrequency(draws, order);
+    assert.deepEqual(result.map(item => item.sum), expected, order);
+    assert.equal(result.reduce((total, item) => total + item.count, 0), 6);
+    assert.deepEqual(buildSumFrequency([], order), []);
+    assert.deepEqual(buildSumFrequency([{ sum: 69 }], order), [{ sum: 69, count: 1 }]);
+  }
+  assert.deepEqual(draws, before);
+  assert.deepEqual(buildSumFrequency(draws, "invalid"), buildSumFrequency(draws));
+});
+
+test("agrupa somas iguais, inclui ocorrências únicas e ordena numericamente sem mutar", () => {
+  const rows = [165, 69, 249, 69, 165, 99].map(sum => ({ sum }));
+  const before = structuredClone(rows);
+  const result = buildSumFrequency(rows);
+  assert.deepEqual(result, [
+    { sum: 69, count: 2 }, { sum: 99, count: 1 },
+    { sum: 165, count: 2 }, { sum: 249, count: 1 }
+  ]);
+  assert.equal(result.reduce((total, item) => total + item.count, 0), rows.length);
+  assert.deepEqual(rows, before);
+  assert.deepEqual(buildSumFrequency([]), []);
+  assert.deepEqual(buildSumFrequency([{ sum: 69 }]), [{ sum: 69, count: 1 }]);
+});
 
 test("detalhamento seleciona o conjunto e tipo exatos sem mutar nem eliminar repetições", () => {
   const a = { sorteioValue: 2, type: "6x6", numbers: ["04", "05", "30", "33", "41", "52"], matriz: [15, 16, 41, 44, 52, 63] };
