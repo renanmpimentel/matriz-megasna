@@ -14,10 +14,10 @@ test("dígitos e ação são botões acessíveis que controlam a mesma expansão
   assert.doesNotMatch(html, /<table/);
 });
 
-test("expansão mostra 13 colunas e todos os números e matrizes sem alterar a frequência", () => {
+test("expansão mostra 14 colunas, incluindo a soma das dezenas de cada sorteio", () => {
   const draws = [
-    { sorteioValue: 1, matriz: [15, 16, 41, 44, 52, 63], numbers: [4, 5, 30, 33, 41, 52] },
-    { sorteioValue: 38, matriz: [15, 16, 41, 44, 52, 63], numbers: [4, 5, 30, 33, 41, 52] }
+    { sorteioValue: 1, matriz: [15, 16, 41, 44, 52, 63], numbers: ["04", "05", "30", "33", "41", "52"], sum: 165 },
+    { sorteioValue: 38, matriz: [21, 53, 54, 56, 65, 66], numbers: [10, 42, 43, 45, 54, 55], sum: 249 }
   ];
   const html = buildDigitsTableRows([entry, { ...entry, key: "123456", label: "123456" }], { expandedKey: "012345", type: "6x6", draws });
   assert.match(html, /colspan="5"/);
@@ -26,6 +26,14 @@ test("expansão mostra 13 colunas e todos os números e matrizes sem alterar a f
   assert.match(html, /Recolher sorteios/);
   assert.match(html, /Matriz 6/);
   assert.match(html, /Número 6/);
+  assert.match(html, />Soma<\/th>/);
+  const detailTable = html.match(/<table[\s\S]*?<\/table>/)[0];
+  assert.equal((detailTable.match(/scope="col"/g) ?? []).length, 14);
+  const detailRows = [...detailTable.matchAll(/<tr data-digit-draw="(\d+)"[\s\S]*?<\/tr>/g)];
+  for (const [index, match] of detailRows.entries()) {
+    assert.match(match[0], new RegExp(`>${draws[index].sum}</td>\\s*</tr>`));
+    assert.equal(draws[index].sum, draws[index].numbers.reduce((total, number) => total + Number(number), 0));
+  }
   assert.match(html, />04<\/td>/);
   assert.match(html, />05<\/td>/);
   assert.equal((html.match(/data-digit-draw=/g) ?? []).length, 2);

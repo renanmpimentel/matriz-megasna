@@ -27,16 +27,18 @@ export function buildDigitsTableRows(entries, { expandedKey = "", type = "", dra
             <button id="digits-close-${entry.key}" type="button" data-digits-toggle="${entry.key}" class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-base text-emerald-800 focus-visible:outline-2 focus-visible:outline-emerald-700">Recolher sorteios</button>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full min-w-[1080px] border-collapse text-base tabular-nums" aria-label="Matrizes e números por sorteio do conjunto ${entry.label}">
+            <table class="w-full min-w-[1140px] border-collapse text-base tabular-nums" aria-label="Matrizes, números e soma por sorteio do conjunto ${entry.label}">
               <thead class="bg-emerald-800 text-white"><tr>
                 <th scope="col" class="px-2 py-3">Concurso</th>
                 ${Array.from({ length: 6 }, (_, i) => `<th scope="col" class="px-2 py-3">Matriz ${i + 1}</th>`).join("")}
                 ${Array.from({ length: 6 }, (_, i) => `<th scope="col" class="px-2 py-3">Número ${i + 1}</th>`).join("")}
+                <th scope="col" class="px-2 py-3">Soma</th>
               </tr></thead>
               <tbody>${draws.map(row => `<tr data-digit-draw="${row.sorteioValue}" class="odd:bg-white even:bg-slate-100 border-b border-slate-200 text-center">
                 <th scope="row" class="px-2 py-3 font-semibold">${String(row.sorteioValue).padStart(3, "0")}</th>
                 ${row.matriz.map(value => `<td class="px-2 py-3">${value}</td>`).join("")}
                 ${row.numbers.map(value => `<td class="px-2 py-3">${String(value).padStart(2, "0")}</td>`).join("")}
+                <td class="px-2 py-3 font-semibold">${row.sum}</td>
               </tr>`).join("")}</tbody>
             </table>
           </div>` : ""}
