@@ -1,5 +1,6 @@
 import "./style.css";
-import { getDrawsDataUrl } from "./data-url.js";
+import { loadDrawData } from "./draw-data-loader.js";
+import { buildDataStatusLabel } from "./data-status.js";
 import { buildStrategiesRanking } from "./strategies-core.js";
 import { buildStrategiesTableRows, normalizeStrategiesOptions } from "./strategies-view.js";
 
@@ -161,7 +162,7 @@ document.querySelector("#app").innerHTML = `
       </section>
 
       <footer class="mt-4 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-center text-sm text-slate-600">
-        <span id="last-updated">Ultima atualizacao: carregando...</span>
+        <span id="last-updated">Dados atualizados em: carregando...</span>
       </footer>
     </div>
   </main>
@@ -374,13 +375,13 @@ function setActiveTab(tab) {
 }
 
 async function init() {
-  const response = await fetch(getDrawsDataUrl(import.meta.env.BASE_URL));
-  const draws = await response.json();
+  const { draws, metadata } = await loadDrawData(import.meta.env.BASE_URL);
 
   const latestDraw = [...draws].sort((a, b) => Number(a.draw) - Number(b.draw)).at(-1);
-  const updatedLabel = new Date().toLocaleString("pt-BR");
-  const latestDrawLabel = latestDraw?.date ? ` | Data do ultimo jogo: ${latestDraw.date}` : "";
-  lastUpdatedElement.textContent = `Ultima atualizacao: ${updatedLabel}${latestDrawLabel}`;
+  lastUpdatedElement.textContent = buildDataStatusLabel({
+    updatedAt: metadata?.updatedAt,
+    latestDrawDate: latestDraw?.date,
+  });
 
   allRows = draws.map(buildRow);
 
